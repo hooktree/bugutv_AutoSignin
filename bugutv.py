@@ -9,7 +9,7 @@ from urllib.parse import quote
 # global variables
 uname = ''            # username，需要修改成自己的登录用户名！！！！！！！！！！！！！！！！！！！！
 upassword = ''         # password，需要修改成自己的密码！！！！！！！！！！！！！！！！！！！！！！！
-sever_jiang_send_key = 'SCT245269Tp8LgJy31WKnaE0j2c4Cg5mpP'    #server酱的send_key,如需微信通知功能，可填写此项；如果不需要通知，可以留空''
+sever_jiang_send_key = ''    #server酱的send_key,如需微信通知功能，可填写此项；如果不需要通知，可以留空''
 
 data_nonce = ''
 wpnonce = ''
