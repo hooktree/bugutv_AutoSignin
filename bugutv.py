@@ -1,4 +1,5 @@
 #!/opt/conda/bin/python3.9
+import base64
 import httpx
 import re
 import sys
@@ -6,37 +7,61 @@ import time
 from urllib.parse import urlencode
 from urllib.parse import quote
 
+import requests
+
 # global variables
 uname = ''            # username，需要修改成自己的登录用户名！！！！！！！！！！！！！！！！！！！！
 upassword = ''         # password，需要修改成自己的密码！！！！！！！！！！！！！！！！！！！！！！！
-sever_jiang_send_key = ''    #server酱的send_key,如需微信通知功能，可填写此项；如果不需要通知，可以留空''
+
+# 通知服务
+# fmt: off
+push_config = {
+
+    'NTFY_URL': 'https://ntfy.sh',                     # ntfy地址,如https://ntfy.sh
+    'NTFY_TOPIC': '',                   # ntfy的消息应用topic，需要修改成自己的topic ！！！！！！！！！！！！！！！！！！！！
+    'NTFY_PRIORITY':'3',                # 推送消息优先级,默认为3
+
+}
+# fmt: on
 
 data_nonce = ''
 wpnonce = ''
 spaceurl = 'https://www.bugutv.org/user'
 r = httpx.Client(http2=True)
 
-#以下是使用server酱通知的函数（抄来的，哈哈）
-def serverJ(title: str, content: str) -> None:
+#以下是使用ntfy通知的函数
+def ntfy(title: str, content: str) -> None:
     """
-    通过 server酱 推送消息。
+    通过 Ntfy 推送消息
     """
-    if sever_jiang_send_key == '':
-        print("serverJ 服务的 send_KEY 未设置!!\n取消推送")
+
+    def encode_rfc2047(text: str) -> str:
+        """将文本编码为符合 RFC 2047 标准的格式"""
+        encoded_bytes = base64.b64encode(text.encode("utf-8"))
+        encoded_str = encoded_bytes.decode("utf-8")
+        return f"=?utf-8?B?{encoded_str}?="
+
+    if not push_config.get("NTFY_TOPIC"):
         return
-    print("serverJ 服务启动")
-
-    data = {"text": title, "desp": content.replace("\n", "\n\n")}
-    if sever_jiang_send_key.find("SCT") != -1:
-        url = f'https://sctapi.ftqq.com/{sever_jiang_send_key}.send'
+    print("ntfy 服务启动")
+    priority = "3"
+    if not push_config.get("NTFY_PRIORITY"):
+        print("ntfy 服务的NTFY_PRIORITY 未设置!!默认设置为3")
     else:
-        url = f'https://sc.ftqq.com/{sever_jiang_send_key}.send'
-    response = r.post(url, data=data).json()
+        priority = push_config.get("NTFY_PRIORITY")
 
-    if response.get("errno") == 0 or response.get("code") == 0:
-        print("serverJ 推送成功！")
+    # 使用 RFC 2047 编码 title
+    encoded_title = encode_rfc2047(title)
+
+    data = content.encode(encoding="utf-8")
+    headers = {"Title": encoded_title, "Priority": priority}  # 使用编码后的 title
+
+    url = push_config.get("NTFY_URL") + "/" + push_config.get("NTFY_TOPIC")
+    response = requests.post(url, data=data, headers=headers)
+    if response.status_code == 200:  # 使用 response.status_code 进行检查
+        print("Ntfy 推送成功！")
     else:
-        print(f'serverJ 推送失败！错误码：{response["message"]}')
+        print("Ntfy 推送失败！错误信息：", response.text)
 
 #从个人空间页面获取当前K值
 def get_point(spaceurl):
@@ -105,8 +130,8 @@ if __name__ == '__main__':
             #发送推送 通知
             title = '布谷TV签到：获得'+str(int(k_num2)-int(k_num1))+'个积分'
             content = uname+'本次获得积分: ' + str(int(k_num2)-int(k_num1)) + '个\n'+'累计积分: ' + str(int(k_num2)) + '个'
-            #server酱通知
-            serverJ(title,content)
+            #ntfy通知
+            ntfy(title,content)
             
             
             print('***************布谷TV签到：结果统计***************')
